@@ -1,0 +1,27 @@
+if COMPILER_IS_GCC
+AM_CFLAGS = -Wall -Werror
+endif
+
+AM_CPPFLAGS = -I$(top_srcdir)/src
+AM_CPPFLAGS += -DPREFIX='"${prefix}"'
+AM_CPPFLAGS += -DCONFIGFILE='"${sysconfdir}/${PACKAGE_NAME}.conf"'
+AM_CPPFLAGS += -DLOCALSTATEDIR='"${localstatedir}"'
+AM_CPPFLAGS += -DPKGLOCALSTATEDIR='"${localstatedir}/lib/${PACKAGE_NAME}"'
+if BUILD_FEATURE_DAEMON
+AM_CPPFLAGS += -DPIDFILE='"${localstatedir}/run/${PACKAGE_NAME}.pid"'
+endif
+AM_CPPFLAGS += -DPLUGINDIR='"${pkglibdir}"'
+AM_CPPFLAGS += -DPKGDATADIR='"${pkgdatadir}"'
+
+AUTOMAKE_OPTIONS = subdir-objects
+
+bin_PROGRAMS = p711prov
+
+p711prov_SOURCES = p711prov.c
+
+p711_CPPFLAGS =  $(AM_CPPFLAGS) $(LTDLINCL)
+p711prov_CFLAGS = $(AM_CFLAGS)
+p711prov_LDFLAGS = -export-dynamic
+p711prov_LDADD = -lm
+p711prov_DEPENDENCIES =
+

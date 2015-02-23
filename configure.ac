@@ -2248,6 +2248,39 @@ AC_SUBST(JAVA_LIBS)
 AM_CONDITIONAL(BUILD_WITH_JAVA, test "x$with_java" = "xyes")
 # }}}
 
+# --with-libjansson {{{
+with_jansson_cflags=""
+with_jansson_libs="-ljansson"
+AC_ARG_WITH(libjansson, [AS_HELP_STRING([--with-libjansson@<:@=PREFIX@:>@], [Path to libjansson.])],
+[
+	if test "x$withval" = "xno"
+	then
+		with_libjansson="no"
+	else if test "x$withval" = "xyes"
+	then
+		with_libjansson="yes"
+	fi; fi
+],
+[
+	with_libjansson="yes"
+])
+if test "x$with_libjansson" = "xyes"
+then
+	AC_CHECK_LIB(jansson, json_loads,
+		 [with_libjansson="yes"],
+		 [with_libjansson="no (symbol 'json_loads' not found)"])
+	with_jansson_libs="-ljansson"
+fi
+if test "x$with_libjansson" = "xyes"
+then
+	BUILD_WITH_LIBJANSSON_CFLAGS="$with_jansson_cflags"
+	BUILD_WITH_LIBJANSSON_LIBS="$with_jansson_libs"
+	AC_SUBST(BUILD_WITH_LIBJANSSON_CFLAGS)
+	AC_SUBST(BUILD_WITH_LIBJANSSON_LIBS)
+fi
+AM_CONDITIONAL(BUILD_WITH_LIBJANSSON, test "x$with_libjansson" = "xyes")
+# }}}
+
 # --with-libldap {{{
 AC_ARG_WITH(libldap, [AS_HELP_STRING([--with-libldap@<:@=PREFIX@:>@], [Path to libldap.])],
 [
@@ -5164,6 +5197,8 @@ then
 	plugin_memory="yes"
 	plugin_nfs="yes"
 	plugin_numa="yes"
+	plugin_p711_prov="yes"
+	plugin_p711="yes"
 	plugin_processes="yes"
 	plugin_protocols="yes"
 	plugin_serial="yes"
@@ -5279,6 +5314,11 @@ then
 	then
 		plugin_bind="yes"
 	fi
+fi
+
+if test "x$with_libcurl$with_libjansson" = "xyesyes"
+then
+	with_curl_jansson="yes"
 fi
 
 if test "x$with_libopenipmipthread" = "xyes"
@@ -5531,6 +5571,8 @@ AC_PLUGIN([onewire],     [$with_libowcapi],    [OneWire sensor statistics])
 AC_PLUGIN([openldap],    [$with_libldap],      [OpenLDAP statistics])
 AC_PLUGIN([openvpn],     [yes],                [OpenVPN client statistics])
 AC_PLUGIN([oracle],      [$with_oracle],       [Oracle plugin])
+AC_PLUGIN([p711_prov],   [$with_curl_jansson], [P711 Provisioning Module])
+AC_PLUGIN([p711],        [yes],                [P711 Command Module])
 AC_PLUGIN([perl],        [$plugin_perl],       [Embed a Perl interpreter])
 AC_PLUGIN([pf],          [$have_net_pfvar_h],  [BSD packet filter (PF) statistics])
 # FIXME: Check for libevent, too.
@@ -5738,7 +5780,7 @@ AC_SUBST(LCC_VERSION_STRING)
 
 AC_CONFIG_FILES(src/libcollectdclient/collectd/lcc_features.h)
 
-AC_CONFIG_FILES([Makefile src/Makefile src/daemon/Makefile src/collectd.conf src/libcollectdclient/Makefile src/libcollectdclient/libcollectdclient.pc src/liboconfig/Makefile bindings/Makefile bindings/java/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/daemon/Makefile src/p711/Makefile src/collectd.conf src/libcollectdclient/Makefile src/libcollectdclient/libcollectdclient.pc src/liboconfig/Makefile bindings/Makefile bindings/java/Makefile])
 AC_OUTPUT
 
 if test "x$with_librrd" = "xyes" \
@@ -5781,6 +5823,7 @@ Configuration:
     libi2c-dev  . . . . . $with_libi2c
     libiokit  . . . . . . $with_libiokit
     libiptc . . . . . . . $with_libiptc
+    libjansson  . . . . . $with_libjansson
     libjvm  . . . . . . . $with_java
     libkstat  . . . . . . $with_kstat
     libkvm  . . . . . . . $with_libkvm
@@ -5902,6 +5945,8 @@ Configuration:
     openldap  . . . . . . $enable_openldap
     openvpn . . . . . . . $enable_openvpn
     oracle  . . . . . . . $enable_oracle
+    p711_prov . . . . . . $enable_p711_prov
+    p711  . . . . . . . . $enable_p711
     perl  . . . . . . . . $enable_perl
     pf  . . . . . . . . . $enable_pf
     pinba . . . . . . . . $enable_pinba

@@ -2,7 +2,7 @@ SUBDIRS = libcollectdclient
 if BUILD_WITH_OWN_LIBOCONFIG
 SUBDIRS += liboconfig
 endif
-SUBDIRS += daemon
+SUBDIRS += daemon p711
 
 PLUGIN_LDFLAGS = -module -avoid-version -export-symbols-regex '\<module_register\>'
 
@@ -752,6 +752,20 @@ oracle_la_CPPFLAGS = $(AM_CPPFLAGS) $(BUILD_WITH_ORACLE_CFLAGS)
 oracle_la_LIBADD = $(BUILD_WITH_ORACLE_LIBS)
 oracle_la_LDFLAGS = $(PLUGIN_LDFLAGS)
 endif
+
+if BUILD_PLUGIN_P711
+pkglib_LTLIBRARIES += p711.la
+p711_la_SOURCES = p711.c
+p711_la_LDFLAGS = $(PLUGIN_LDFLAGS)
+endif
+
+if BUILD_PLUGIN_P711_PROV
+pkglib_LTLIBRARIES += p711_prov.la
+p711_prov_la_SOURCES = p711_prov.c
+p711_prov_la_LDFLAGS = $(PLUGIN_LDFLAGS)
+p711_prov_la_CFLAGS = -std=c99 $(BUILD_WITH_LIBCURL_CFLAGS) $(BUILD_WITH_LIBJANSSON_CFLAGS)
+p711_prov_la_LIBADD = $(BUILD_WITH_LIBCURL_LIBS) $(BUILD_WITH_LIBJANSSON_LIBS)
+endif # BUILD_PLUGIN_P711_PROV
 
 if BUILD_PLUGIN_PERL
 pkglib_LTLIBRARIES += perl.la
