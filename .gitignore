@@ -87,3 +87,9 @@ src/tests/mock/.deps/
 src/daemon/.deps/
 src/daemon/.dirstamp
 src/daemon/collectd
+
+# new p711 repo
+src/p711/.deps/
+src/p711/.dirstamp
+src/p711/p711prov
+

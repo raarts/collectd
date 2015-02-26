@@ -49,6 +49,9 @@ static char p711_eth0_mac[20];
 
 static const char *host = "udp.p711.net";
 static const char *port = "7110";
+static int noexec;
+static int debug;
+static int verbose;
 
 /*
 static void p711_submit (gauge_t snum, gauge_t mnum, gauge_t lnum)
@@ -71,6 +74,8 @@ static void p711_submit (gauge_t snum, gauge_t mnum, gauge_t lnum)
 }
 */
 
+#include "p711/do_provision.c"
+
 static int p711_process_action(char *buf)
 {
   struct _namevalue {
@@ -89,6 +94,15 @@ static int p711_process_action(char *buf)
   if (!strcmp(nv[0].name, "Action")) {
     if (!strcmp(nv[0].value, "Pong")) {
       printf("Pong\n");
+    }
+    if (!strcmp(nv[0].value, "Provision")) {
+      pthread_t th;
+      pthread_attr_t th_attr;
+
+      if (plugin_thread_create (&th, &th_attr, do_provision, NULL)) {
+        char errbuf[1024];
+        WARNING (PLUGIN_NAME ": pthread_create failed: %s", sstrerror (errno, errbuf, sizeof (errbuf)));
+      }
     }
   }
   return 0;
