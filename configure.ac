@@ -5197,7 +5197,6 @@ then
 	plugin_memory="yes"
 	plugin_nfs="yes"
 	plugin_numa="yes"
-	plugin_p711_prov="yes"
 	plugin_p711="yes"
 	plugin_processes="yes"
 	plugin_protocols="yes"
@@ -5413,6 +5412,11 @@ then
 	plugin_log_logstash="yes"
 fi
 
+if test "x$with_libcurl$with_libjansson" = "xyesyes"
+then
+	plugin_p711="yes"
+fi
+
 if test "x$c_cv_have_libperl$c_cv_have_perl_ithreads" = "xyesyes"
 then
 	plugin_perl="yes"
@@ -5571,8 +5575,7 @@ AC_PLUGIN([onewire],     [$with_libowcapi],    [OneWire sensor statistics])
 AC_PLUGIN([openldap],    [$with_libldap],      [OpenLDAP statistics])
 AC_PLUGIN([openvpn],     [yes],                [OpenVPN client statistics])
 AC_PLUGIN([oracle],      [$with_oracle],       [Oracle plugin])
-AC_PLUGIN([p711_prov],   [$with_curl_jansson], [P711 Provisioning Module])
-AC_PLUGIN([p711],        [yes],                [P711 Command Module])
+AC_PLUGIN([p711],        [$plugin_p711],       [P711 Command Module])
 AC_PLUGIN([perl],        [$plugin_perl],       [Embed a Perl interpreter])
 AC_PLUGIN([pf],          [$have_net_pfvar_h],  [BSD packet filter (PF) statistics])
 # FIXME: Check for libevent, too.
@@ -5945,7 +5948,6 @@ Configuration:
     openldap  . . . . . . $enable_openldap
     openvpn . . . . . . . $enable_openvpn
     oracle  . . . . . . . $enable_oracle
-    p711_prov . . . . . . $enable_p711_prov
     p711  . . . . . . . . $enable_p711
     perl  . . . . . . . . $enable_perl
     pf  . . . . . . . . . $enable_pf

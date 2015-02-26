@@ -39,6 +39,8 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <curl/curl.h>
+#include <jansson.h>
 
 static char p711_eth0_mac[20];
 
