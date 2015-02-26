@@ -14,50 +14,66 @@ int debug = 0;
 int noexec = 0;
 
 /* file is expected to start with a slash */
-static void copy_if_changed(char *file)
+static void replace_if_changed(char *oldfile)
 {
-  char newpath[256];
-  FILE *new=NULL, *old=NULL;
-  int oldsize=0, newsize=0;
-  void *oldbuf=NULL, *newbuf=NULL;
+  char newfile[256];
+  FILE *new=NULL, *org=NULL;
+  int orgsize=0, newsize=0;
+  void *orgbuf=NULL, *newbuf=NULL;
+  struct stat stbuf;
+  int bytes;
 
-  snprintf(newpath, sizeof(newpath), "/tmp%s", file);
-  if ((new = fopen(newpath, "r")) == NULL) {
-    syslog (LOG_WARNING, "%s: %s", newpath, strerror(errno));
+  snprintf(newfile, sizeof(newfile), "/tmp%s", oldfile);
+
+  // read new file into memory
+  if ((new = fopen(newfile, "r")) == NULL) {
+    syslog (LOG_WARNING, "%s(%d): %s: %s", __FILE__, __LINE__, newfile, strerror(errno));
     goto exit;
   }
-  if ((old = fopen(file, "r")) == NULL) {
-    syslog (LOG_WARNING, "%s: %s", file, strerror(errno));
+  if ((fstat(fileno(new), &stbuf) != 0)) {
+    syslog (LOG_WARNING, "%s(%d): %s: %s", __FILE__, __LINE__, newfile, strerror(errno));
     goto exit;
   }
-  // read new file
-  newsize = lseek(fileno(new), 0, SEEK_END)+1;
+  if (!S_ISREG(stbuf.st_mode)) {
+    syslog (LOG_WARNING, "%s(%d): %s: not a regular file", __FILE__, __LINE__, newfile);
+    goto exit;
+  }
+  newsize = stbuf.st_size;
   newbuf = malloc(newsize);
-  lseek(fileno(new), 0, SEEK_SET);
-  if (fread(newbuf, newsize, 1, new) != newsize) {
-    syslog (LOG_WARNING, "%s: %s", newpath, strerror(errno));
+  bytes = fread(newbuf, 1, newsize, new);
+  if (bytes != newsize) {
+    syslog (LOG_WARNING, "%s(%d): %s: %s (%d of %d)", __FILE__, __LINE__, newfile, strerror(errno), bytes, newsize);
     goto exit;
   }
 
-  // read old file
-  oldsize = lseek(fileno(old), 0, SEEK_END)+1;
-  oldbuf = malloc(oldsize);
-  lseek(fileno(old), 0, SEEK_SET);
-  if (fread(oldbuf, oldsize, 1, old) != oldsize) {
-    syslog (LOG_WARNING, "%s: %s", file, strerror(errno));
+  // read org file into memory
+  if ((org = fopen(oldfile, "r+")) == NULL) {
+    syslog (LOG_WARNING, "%s(%d): %s: %s", __FILE__, __LINE__, oldfile, strerror(errno));
+    goto exit;
+  }
+  if ((fstat(fileno(org), &stbuf) != 0) || (!S_ISREG(stbuf.st_mode))) {
+    syslog (LOG_WARNING, "%s(%d): %s: %s", __FILE__, __LINE__, newfile, strerror(errno));
+    goto exit;
+  }
+  orgsize = stbuf.st_size;
+  orgbuf = malloc(orgsize);
+  bytes = fread(orgbuf, 1, orgsize, org);
+  if (bytes != orgsize) {
+    syslog (LOG_WARNING, "%s(%d): %s: %s (%d of %d)", __FILE__, __LINE__, oldfile, strerror(errno), bytes, orgsize);
     goto exit;
   }
 
-  if (!noexec && strcmp(oldbuf, newbuf)) {
-    fwrite(newbuf, newsize, 1, old);
+  if (!noexec && strcmp(orgbuf, newbuf)) {
+    ftruncate(fileno(org), 0);
+    fwrite(newbuf, 1, newsize, org);
   }
   
 exit:
-  if (oldbuf) free(oldbuf);
+  if (orgbuf) free(orgbuf);
   if (newbuf) free(newbuf);
   if (new) fclose(new);
-  if (old) fclose(old);
-  if (!debug) unlink(newpath);
+  if (org) fclose(org);
+  if (!debug) unlink(newfile);
   return;
 }
 
@@ -255,7 +271,7 @@ int main(int argc, char *argv[])
       }
     }
   }
-  copy_if_changed("/etc/config/zerotier");
+  replace_if_changed("/etc/config/zerotier");
   if (!debug) {
     rmdir("/tmp/etc/config");
     rmdir("/tmp/etc");
