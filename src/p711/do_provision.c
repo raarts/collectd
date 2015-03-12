@@ -9,7 +9,7 @@
 #include <syslog.h>
 
 /* file is expected to start with a slash */
-static void replace_if_changed(char *oldfile)
+static int file_changed(char *oldfile)
 {
   char newfile[256];
   FILE *new=NULL, *org=NULL;
@@ -17,6 +17,7 @@ static void replace_if_changed(char *oldfile)
   void *orgbuf=NULL, *newbuf=NULL;
   struct stat stbuf;
   int bytes;
+  int replaced = 0;
 
   snprintf(newfile, sizeof(newfile), "/tmp%s", oldfile);
 
@@ -61,6 +62,7 @@ static void replace_if_changed(char *oldfile)
   if (!noexec && strcmp(orgbuf, newbuf)) {
     ftruncate(fileno(org), 0);
     fwrite(newbuf, 1, newsize, org);
+    replaced = 1;
   }
   
 exit:
@@ -68,8 +70,12 @@ exit:
   if (newbuf) free(newbuf);
   if (new) fclose(new);
   if (org) fclose(org);
-  if (!debug) unlink(newfile);
-  return;
+  if (!debug) {
+    unlink(newfile);
+  } else {
+    fprintf(stderr, "Left this for you: %s\n", newfile);
+  }
+  return replaced;
 }
 
 struct string {
@@ -141,6 +147,7 @@ void *do_provision(void *arg)
   json_t *root;
   json_error_t error;
   void *iter;
+  const char *firmware_url = NULL;
 
   init_string(&s);
   if (p711_prov_request(&s) != 0) {
@@ -150,7 +157,6 @@ void *do_provision(void *arg)
   }
   if (verbose) printf("%s\n", s.ptr);
 
-  //root = json_loadb(s.ptr, s.len, JSON_DECODE_ANY, &error);
   root = json_loads(s.ptr, 0, &error);
   free(s.ptr);
   if (!root) {
@@ -194,8 +200,21 @@ void *do_provision(void *arg)
         WARNING ("%s(%d): /tmp/p711_prov/zerotier: %s", __FILE__, __LINE__, strerror(errno));
       }
     }
+    if (!strcmp(key, "firmware_url") && json_is_string(value)) {
+      firmware_url = json_string_value(value);
+    }
+    if (!strcmp(key, "force_upgrade") && json_is_true(value)) {
+      unlink("/etc/firmware_file");
+    }
   }
-  replace_if_changed("/etc/config/zerotier");
+  if (file_changed("/etc/config/zerotier")) {
+    system("/etc/init.d/zerotier restart");
+  }
+  if (firmware_url) {
+    //printf("/usr/bin/p711-fw-upgrade %s", firmware_url);
+    execlp("/usr/bin/p711-fw-upgrade", "/usr/bin/p711-fw-upgrade", firmware_url, (char *) NULL);
+  }
+  json_decref(root);
   if (!debug) {
     rmdir("/tmp/etc/config");
     rmdir("/tmp/etc");

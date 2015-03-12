@@ -82,7 +82,7 @@ static void p711_prov_submit (gauge_t snum, gauge_t mnum, gauge_t lnum)
 static int p711_prov_init (void)
 {
   char *lf;
-  char *eth0_address_file = "/sys/class/net/eth0/address";
+  char *eth0_address_file = "/etc/eth0-physmac";
   FILE *f_address = fopen(eth0_address_file, "r");
   if (!f_address) {
     ERROR (PLUGIN_NAME ": %s: %s", eth0_address_file, strerror(errno));

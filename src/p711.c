@@ -91,18 +91,36 @@ static int p711_process_action(char *buf)
     nv[i].value = buf;
     while (*buf) if (*++buf == '\n') { *buf++ = 0; break; }
   }
+#if COLLECT_DEBUG
+  for (i=0; i < 10; i++) {
+    if (nv[i].name && nv[i].value) {
+      DEBUG (PLUGIN_NAME ": %s: %s", nv[i].name, nv[i].value);
+    }
+  }
+#endif
   if (!strcmp(nv[0].name, "Action")) {
     if (!strcmp(nv[0].value, "Pong")) {
       printf("Pong\n");
     }
-    if (!strcmp(nv[0].value, "Provision")) {
-      pthread_t th;
-      pthread_attr_t th_attr;
-
-      if (plugin_thread_create (&th, &th_attr, do_provision, NULL)) {
-        char errbuf[1024];
-        WARNING (PLUGIN_NAME ": pthread_create failed: %s", sstrerror (errno, errbuf, sizeof (errbuf)));
+    if (!strcmp(nv[0].value, "Upgrade")) {
+      if (!strcmp(nv[1].name, "URL") && nv[1].value) {
+        execlp("/usr/bin/p711-fw-upgrade", "/usr/bin/p711-fw-upgrade", nv[1].value, (char *) NULL);    
+        ERROR (PLUGIN_NAME ": exec p711-fw-upgrade %s: %s", nv[1].value, strerror(errno));
       }
+    }
+    if (!strcmp(nv[0].value, "Provision")) {
+      pid_t childPID = fork();
+
+      if (childPID >= 0) { // fork was successful 
+        if (childPID == 0) { // child process
+          INFO (PLUGIN_NAME ": starting p711prov");
+          execlp("/usr/bin/p711prov", "/usr/bin/p711prov", (char *) NULL);    
+          ERROR (PLUGIN_NAME ": exec p711prov: %s", strerror(errno));
+          exit(0);
+        }
+      }
+    } else { // fork failed 
+      ERROR (PLUGIN_NAME ": fork: %s", strerror(errno));
     }
   }
   return 0;
@@ -282,7 +300,7 @@ static int p711_read (void)
       strncpy(udphost[freeslot].ipaddr, ipaddr, sizeof(udphost[freeslot].ipaddr));
       udphost[freeslot].status = UDPHOST_STARTING;
       udphost[freeslot].seen = 1;
-      NOTICE (PLUGIN_NAME ": found new host %s in DNS record, starting worker", udphost[freeslot].ipaddr);
+      NOTICE (PLUGIN_NAME ": new host %s for '%s', starting worker", udphost[freeslot].ipaddr, host);
     }
   }
 /*
@@ -313,7 +331,7 @@ static int p711_read (void)
 static int p711_init (void)
 {
   char *lf;
-  char *eth0_address_file = "/sys/class/net/eth0/address";
+  char *eth0_address_file = "/etc/eth0-physmac";
   FILE *fd;
 
   fd = fopen(eth0_address_file, "r");

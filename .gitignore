@@ -93,3 +93,15 @@ src/p711/.deps/
 src/p711/.dirstamp
 src/p711/p711prov
 
+# openwrt buildfiles
+.built
+.configured_*
+.prepared
+.quilt_checked
+.source_dir
+ABOUT-NLS
+config.rpath
+ipkg-ar71xx/
+ipkg-install/
+ipkg-x86/
+

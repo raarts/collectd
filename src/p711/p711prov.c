@@ -60,7 +60,7 @@ void read_off_memory_status(void)
 static int p711_prov_init (void)
 {
   char *lf;
-  char *eth0_address_file = "/sys/class/net/eth0/address";
+  char *eth0_address_file = "/etc/eth0-physmac";
   FILE *f_address = fopen(eth0_address_file, "r");
   if (!f_address) {
     ERROR ("(%s(%d): %s: %s", __FILE__, __LINE__, eth0_address_file, strerror(errno));
